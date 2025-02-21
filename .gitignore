@@ -1,0 +1,5 @@
+.env
+.env.local
+libs/__pycache__/
+ragvision
+__pycache__
