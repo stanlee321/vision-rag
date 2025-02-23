@@ -5,8 +5,8 @@ from db.chroma import ChromaDBClient
 from smart_llm_loader import SmartLLMLoader
 
 from llama_index.llms.openai import OpenAI
-from llama_index.llms.groq import Groq
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+# from llama_index.llms.groq import Groq
+# from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core.schema import Document as LlamaDocument
@@ -15,7 +15,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.text_splitter import SentenceSplitter
 from llama_index.core import VectorStoreIndex, download_loader, StorageContext
 
-from typing import Union
+from typing import Union, Tuple
 
 from anyio import to_thread
 
@@ -63,11 +63,9 @@ def convert_langchain_to_llama_docs(lc_docs, doc_type: str):
     ]
 
 
-def get_llm(provider: str):
-    if provider == "groq":
-        return Groq(model="llama3-70b-8192", api_key=os.environ["GROQ_API_KEY"])
-    else:
-        return OpenAI(model_name="gpt-4o-mini", api_key=os.environ["OPENAI_API_KEY"])
+def get_llm(provider: str, model_name: str):
+
+    return OpenAI(model_name=model_name, api_key=os.environ["OPENAI_API_KEY"])
     
     
 def get_embed_model(provider: str):
@@ -75,11 +73,6 @@ def get_embed_model(provider: str):
         return OpenAIEmbedding(
             model_name="text-embedding-3-large", 
             api_key=os.environ["OPENAI_API_KEY"]
-        )
-
-    elif provider == "huggingface":
-        return  HuggingFaceEmbedding(
-            model_name="BAAI/bge-small-en-v1.5"
         )
     elif provider == "ollama":
         return OllamaEmbedding(
@@ -100,12 +93,28 @@ async def process_pdf(
     vision_model: str = "gemini/gemini-1.5-flash",
     doc_type: str = "GENERIC",
     api_key: str = None
-) -> VectorStoreIndex:
+) -> Tuple[VectorStoreIndex, str]:
+    """
+    Process a PDF file and return a VectorStoreIndex.
+
+    Args:
+        chroma_client: The ChromaDB client.
+        file_path: The path to the PDF file.
+        collection_name: The name of the collection to upload the document to.
+        loader_type: The type of loader to use to load the document.
+        vision_model: The vision model to use to load the document.
+        doc_type: The type of the document.
+        api_key: The API key to use to load the document.
+
+    Returns:
+        A VectorStoreIndex.
+    """
     # Get (or create) a collection in ChromaDB
     collection = chroma_client.get_or_create_collection(collection_name)
     vector_store = ChromaVectorStore(chroma_collection=collection)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
+    documents_size = 0
     # Choose loader based on loader_type query parameter
     if loader_type.lower() == "smart":
         loader = SmartLLMLoader(
@@ -117,7 +126,7 @@ async def process_pdf(
         # Run loader.load_and_split() in a separate thread to avoid nested event loops
         docs = await to_thread.run_sync(loader.load_and_split)
         docs = convert_langchain_to_llama_docs(docs, doc_type)
-        print("docs from", len(docs))
+        documents_size = len(docs)
     else:
         PyMuPDFReader = download_loader("PyMuPDFReader")
         docs = PyMuPDFReader().load_data(file_path)
@@ -126,7 +135,7 @@ async def process_pdf(
         for doc in docs:
             doc.metadata["doc_type"] = doc_type
         
-        print("Number of docs loaded:", len(docs))
+        documents_size = len(docs)
 
     # Build (or update) the index using the parsed documents
     index = VectorStoreIndex.from_documents(
@@ -138,4 +147,4 @@ async def process_pdf(
         ],
         show_progress=True
     )
-    return index
+    return index, documents_size

@@ -1,13 +1,20 @@
-version: '3.9'
-networks:
-  net:
 
 services:
+  rag-api:
+    image: stanlee321/rag-api:latest
+    env_file:
+      - .env
+    ports:
+      - "8003:8003"
+    depends_on:
+      - chroma
   zipkin:
     image: openzipkin/zipkin
     ports:
       - "9411:9411"
-    depends_on: [otel-collector]
+    depends_on: 
+      - otel-collector
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.111.0
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -17,7 +24,7 @@ services:
       - "4317:4317"  # OTLP
       - "4318:4318"
       - "55681:55681" # Legacy
-  server:
+  chroma:
     image: ghcr.io/chroma-core/chroma:0.5.23
     volumes:
       - index_data:/chroma/chroma
@@ -42,6 +49,4 @@ services:
 
 volumes:
   index_data:
-    driver: local
-  backups:
     driver: local

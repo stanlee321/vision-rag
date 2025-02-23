@@ -16,7 +16,8 @@ class ChromaDBClient:
         return self.client.get_or_create_collection(collection_name)
     
     def list_collections(self):
-        return self.client.list_collections()
+        collection_names = self.client.list_collections()
+        return collection_names
     
     def get_or_create_client(self):
         if self.client is None:
@@ -32,5 +33,4 @@ class ChromaDBClient:
                 )
             )
         
-        print(self.client.list_collections())
         return self.client
