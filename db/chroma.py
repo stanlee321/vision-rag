@@ -34,3 +34,6 @@ class ChromaDBClient:
             )
         
         return self.client
+    
+    def delete_collection(self, collection_name: str):
+        self.client.delete_collection(collection_name)

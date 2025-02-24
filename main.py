@@ -119,3 +119,9 @@ def info_endpoint(authenticated: bool = Depends(verify_token)):
 @app.get("/v1/rag/collections")
 def collections_endpoint(authenticated: bool = Depends(verify_token)):
     return rag_api.list_all_collections()
+
+
+# Delete collection by name
+@app.delete("/v1/rag/collections/{collection_name}")
+def delete_collection_endpoint(collection_name: str, authenticated: bool = Depends(verify_token)):
+    return rag_api.delete_collection(collection_name)

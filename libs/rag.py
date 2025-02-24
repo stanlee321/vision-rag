@@ -150,3 +150,15 @@ class RagAPI:
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to list collections: {str(e)}")
+
+
+    def delete_collection(self, collection_name: str):
+        """
+        Delete a collection from the RAG API.
+        """
+        try:
+            self.chroma_client.delete_collection(collection_name)
+            return {"message": f"Collection '{collection_name}' deleted successfully."}
+        except Exception as e:
+            print(f"Error deleting collection: {str(e)}")
+            raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
