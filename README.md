@@ -21,6 +21,10 @@ docker compose up -d # for chroma
 curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collection_smart&loader=smart" \
      -F "file=@./data/2502.06472v1.pdf"
 
+curl -X POST "http://23.20.190.185:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
+     -F "file=@./data/test.pdf" \
+     -H "Authorization: Bearer tP07DAahaFF\!"
+     
 curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
      -F "file=@./data/2502.06472v1.pdf"
 

@@ -72,15 +72,15 @@ app = FastAPI()
 @app.post("/v1/rag/upload")
 async def upload_endpoint(
     file: UploadFile = File(..., description="PDF file to upload"),
-    collection_name: str = Form(
+    collection_name: str = Query(
         default="default_collection",
         description="Name of the collection to store the document"
     ),
-    doc_type: str = Form(
+    doc_type: str = Query(
         default="GENERIC",
         description="Type of the document being uploaded"
     ),
-    loader: str = Form(
+    loader: str = Query(
         default="pymupdf",
         description="Loader to use for processing the document"
     ),
