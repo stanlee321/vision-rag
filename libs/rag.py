@@ -56,6 +56,8 @@ class RagAPI:
                 loader_type=loader, vision_model=self.vision_model,
                 doc_type=doc_type, api_key=self.openai_api_key
             )
+            
+            print(f"Documents size: {documents_size}")
         except Exception as e:
             os.unlink(tmp_path)
             raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")

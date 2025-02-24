@@ -91,6 +91,10 @@ def query_endpoint(
     response_mode: str = Query("compact"),
     authenticated: bool = Depends(verify_token)
 ):
+    print(f"Querying document: {q}")
+    print(f"Document type: {doc_type}")
+    print(f"Collection name: {collection_name}")
+    print(f"Response mode: {response_mode}")
     return rag_api.query_documents(q, doc_type, collection_name, response_mode)
 
 @app.get("/v1/rag/info")
