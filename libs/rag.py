@@ -52,7 +52,7 @@ class RagAPI:
             # Use the original filename but ensure it's safe
             safe_filename = os.path.basename(file.filename)
             file_path = os.path.join(upload_dir, safe_filename)
-            file_path = file_path.split(".")[0]
+            file_path = file_path.split(".")[0] + ".pdf"
             # Write the file with original name
             contents = await file.read()
             with open(file_path, 'wb') as f:
