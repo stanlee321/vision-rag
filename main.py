@@ -1,8 +1,9 @@
 import os
+from typing import Optional
+from fastapi import FastAPI, UploadFile, File, Query, Depends, HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from db.chroma import ChromaDBClient
-from fastapi import FastAPI, UploadFile, File, Query
-
 from llama_index.core import Settings
 from llama_index.core.prompts import PromptTemplate
 
@@ -13,6 +14,10 @@ from libs.rag import RagAPI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Add API token configuration
+API_TOKEN = os.getenv("API_TOKEN", "1234")  # Default token is "1234", but better to set in .env
+security = HTTPBearer()
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 VISION_MODEL = os.getenv("VISION_MODEL", "openai/gpt-4o")
@@ -43,6 +48,24 @@ rag_api = RagAPI(chroma_client, qa_template, OPENAI_API_KEY, VISION_MODEL)
 Settings.llm = get_llm(provider=AI_PROVIDER, model_name=LLM_MODEL)
 Settings.embed_model = get_embed_model(provider=AI_PROVIDER)
 
+def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
+    """
+    Verify the Bearer token from the request
+    """
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if credentials.credentials != API_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return True
 
 app = FastAPI()
 
@@ -51,7 +74,8 @@ async def upload_endpoint(
     file: UploadFile = File(...),
     collection_name: str = Query("default_collection"),
     doc_type: str = Query("GENERIC"),
-    loader: str = Query("pymupdf")
+    loader: str = Query("pymupdf"),
+    authenticated: bool = Depends(verify_token)
 ):
     return await rag_api.upload_document(file, collection_name, doc_type, loader)
 
@@ -60,14 +84,15 @@ def query_endpoint(
     q: str = Query(...),
     doc_type: str = Query(None),
     collection_name: str = Query("default_collection"),
-    response_mode: str = Query("compact")
+    response_mode: str = Query("compact"),
+    authenticated: bool = Depends(verify_token)
 ):
     return rag_api.query_documents(q, doc_type, collection_name, response_mode)
 
 @app.get("/v1/rag/info")
-def info_endpoint():
+def info_endpoint(authenticated: bool = Depends(verify_token)):
     return rag_api.get_info()
 
 @app.get("/v1/rag/collections")
-def collections_endpoint():
+def collections_endpoint(authenticated: bool = Depends(verify_token)):
     return rag_api.list_all_collections()
