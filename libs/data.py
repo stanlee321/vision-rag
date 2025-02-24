@@ -17,6 +17,8 @@ template = (
     
     "AT LEAST REPLY IN 150 WORDS. but if you need more to answer the question, reply in more words. depend on the question."
     "IF YOU NEED MORE CONTEXT, ASK FOR MORE CONTEXT."
+    
+    "DO NOT END THE ANSWER WITH 'ESPERO QUE TE HAYA SIDO DE AYUDA...' OR SOMETHING LIKE THAT. JUST ANSWER THE QUESTION."
 )
 
 response_mode_dict = {
