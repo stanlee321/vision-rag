@@ -24,6 +24,12 @@ curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collectio
 curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
      -F "file=@./data/2502.06472v1.pdf"
 
+# with auth
+curl -X POST "http://23.20.190.185:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
+     -F "file=@./data/test.pdf" \
+     -H "Authorization: Bearer tP07DAahaFF\!"
+
+
 curl -G "http://localhost:8003/v1/rag/query" \
      --data-urlencode "q=What is the document about?" \
      --data-urlencode "collection_name=test_collection_smart" \
@@ -40,6 +46,12 @@ curl "http://23.20.190.185:8003/v1/rag/query?q=What+is+the+main+idea+of+the+docu
 curl "http://localhost:8003/v1/rag/collections"
 
 curl "http://localhost:8003/v1/rag/info"
+
+curl -H "Authorization: Bearer tP07DAahaFF\!" \
+     "http://23.20.190.185:8003/v1/rag/query?q=What+is+the+main+idea+of+the+document%3F&collection_name=test_collection_low&response_mode=compact&doc_type=governingDocuments"
+
+curl "http://23.20.190.185:8003/v1/rag/collections" -H "Authorization: Bearer tP07DAahaFF\!"
+
 ```
 
 

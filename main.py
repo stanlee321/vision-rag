@@ -1,6 +1,6 @@
 import os
 from typing import Optional
-from fastapi import FastAPI, UploadFile, File, Query, Depends, HTTPException, Security
+from fastapi import FastAPI, UploadFile, File, Query, Form, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from db.chroma import ChromaDBClient
@@ -71,10 +71,19 @@ app = FastAPI()
 
 @app.post("/v1/rag/upload")
 async def upload_endpoint(
-    file: UploadFile = File(...),
-    collection_name: str = Query("default_collection"),
-    doc_type: str = Query("GENERIC"),
-    loader: str = Query("pymupdf"),
+    file: UploadFile = File(..., description="PDF file to upload"),
+    collection_name: str = Form(
+        default="default_collection",
+        description="Name of the collection to store the document"
+    ),
+    doc_type: str = Form(
+        default="GENERIC",
+        description="Type of the document being uploaded"
+    ),
+    loader: str = Form(
+        default="pymupdf",
+        description="Loader to use for processing the document"
+    ),
     authenticated: bool = Depends(verify_token)
 ):
     print(f"Uploading document to collection: {collection_name}")
