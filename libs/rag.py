@@ -1,4 +1,6 @@
 import os
+from fastapi import UploadFile
+from tempfile import gettempdir
 
 from tempfile import NamedTemporaryFile
 from db.chroma import ChromaDBClient
@@ -8,7 +10,6 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
 
 from fastapi import HTTPException
-from fastapi import UploadFile
 
 from libs.utils import process_pdf, transform_metadata
 from libs.data import response_mode_dict
@@ -44,30 +45,41 @@ class RagAPI:
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Only PDF files are accepted")
         try:
-            with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp_path = tmp.name.split(".")[-1] + "_" + file.filename
-                contents = await file.read()
-                tmp.write(contents)
-        except Exception:
-            raise HTTPException(status_code=500, detail="Failed to save file")
-        try:
-            _, documents_size = await process_pdf(
-                self.chroma_client, tmp_path, collection_name,
-                loader_type=loader, vision_model=self.vision_model,
-                doc_type=doc_type, api_key=self.openai_api_key
-            )
+            # Create a directory for uploads if it doesn't exist
+            upload_dir = os.path.join(gettempdir(), "uploads")
+            os.makedirs(upload_dir, exist_ok=True)
             
-            print(f"Documents size: {documents_size}")
+            # Use the original filename but ensure it's safe
+            safe_filename = os.path.basename(file.filename)
+            file_path = os.path.join(upload_dir, safe_filename)
+            
+            # Write the file with original name
+            contents = await file.read()
+            with open(file_path, 'wb') as f:
+                f.write(contents)
+            
+            try:
+                _, documents_size = await process_pdf(
+                    self.chroma_client, file_path, collection_name,
+                    loader_type=loader, vision_model=self.vision_model,
+                    doc_type=doc_type, api_key=self.openai_api_key
+                )
+                print("File processed successfully, at file_path: ", file_path)
+                print(f"Documents size: {documents_size}")
+            finally:
+                # Clean up the file after processing
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    
+            return {
+                "message": f"File uploaded and processed into collection '{collection_name}' using loader '{loader}'.",
+                "status": "success",
+                "documents_size": documents_size
+            }
+            
         except Exception as e:
-            os.unlink(tmp_path)
-            raise HTTPException(status_code=500, detail=f"Error processing PDF: {str(e)}")
-        os.unlink(tmp_path)
-        
-        return {
-            "message": f"File uploaded and processed into collection '{collection_name}' using loader '{loader}'.",
-            "status": "success",
-            "documents_size": documents_size
-        }
+            print(f"Error processing document: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error processing document: {str(e)}")
 
     def query_documents(self, q: str, doc_type: str, collection_name: str, response_mode: str):
         """
