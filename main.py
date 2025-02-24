@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+import asyncio
 from fastapi import FastAPI, UploadFile, File, Query, Form, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -28,6 +28,7 @@ CHROMA_CLIENT_AUTH_CREDENTIALS = os.getenv("CHROMA_CLIENT_AUTH_CREDENTIALS")
 CHROMA_SERVER_AUTHN_PROVIDER = os.getenv("CHROMA_SERVER_AUTHN_PROVIDER")
 CHROMA_AUTH_TOKEN_TRANSPORT_HEADER = os.getenv("CHROMA_AUTH_TOKEN_TRANSPORT_HEADER")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+TIMEOUT = int(os.getenv("TIMEOUT", "600"))
 
 # Print all environment variables
 print("Environment variables:")
@@ -90,7 +91,12 @@ async def upload_endpoint(
     print(f"Document type: {doc_type}")
     print(f"Loader: {loader}")
     print(f"File: {file}")
-    return await rag_api.upload_document(file, collection_name, doc_type, loader)
+
+    result = await asyncio.wait_for(
+        rag_api.upload_document(file, collection_name, doc_type, loader),
+        timeout=TIMEOUT
+    )
+    return result
 
 @app.get("/v1/rag/query")
 def query_endpoint(
