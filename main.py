@@ -92,8 +92,13 @@ async def upload_endpoint(
     print(f"Loader: {loader}")
     print(f"File: {file}")
 
+    # result = await asyncio.wait_for(
+    #     rag_api.upload_document(file, collection_name, doc_type, loader),
+    #     timeout=TIMEOUT
+    # )
+    
     result = await asyncio.wait_for(
-        rag_api.upload_document(file, collection_name, doc_type, loader),
+        asyncio.to_thread(rag_api.upload_document, file, collection_name, doc_type, loader),
         timeout=TIMEOUT
     )
     return result
