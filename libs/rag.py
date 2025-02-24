@@ -45,7 +45,7 @@ class RagAPI:
             raise HTTPException(status_code=400, detail="Only PDF files are accepted")
         try:
             with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                tmp_path = file.filename
+                tmp_path = tmp.name.split(".")[-1] + "_" + file.filename
                 contents = await file.read()
                 tmp.write(contents)
         except Exception:
