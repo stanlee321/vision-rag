@@ -22,9 +22,10 @@ curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collectio
      -F "file=@./data/2502.06472v1.pdf"
 
 curl -X POST "http://23.20.190.185:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
-     -F "file=@./data/test.pdf" \
+     -F "file=@./data/mexico.pdf" \
      -H "Authorization: Bearer tP07DAahaFF\!"
      
+
 curl -X POST "http://localhost:8003/v1/rag/upload?collection_name=test_collection_low&loader=low" \
      -F "file=@./data/2502.06472v1.pdf"
 
@@ -47,12 +48,12 @@ curl -G "http://localhost:8003/v1/rag/query" \
 
 curl "http://23.20.190.185:8003/v1/rag/query?q=What+is+the+main+idea+of+the+document%3F&collection_name=governingDocuments&response_mode=compact&doc_type=governingDocuments"
 
-curl "http://localhost:8003/v1/rag/collections"
+curl "http://23.20.190.185:8003/v1/rag/collections" -H "Authorization: Bearer tP07DAahaFF\!"
 
 curl "http://localhost:8003/v1/rag/info"
 
 curl -H "Authorization: Bearer tP07DAahaFF\!" \
-     "http://23.20.190.185:8003/v1/rag/query?q=What+is+the+main+idea+of+the+document%3F&collection_name=test_collection_low&response_mode=compact&doc_type=governingDocuments"
+     "http://23.20.190.185:8003/v1/rag/query?q=acerca+del+articulo+50+de+la+constitucion+de+mexico%3F&collection_name=default_collection&response_mode=compact"
 
 curl "http://23.20.190.185:8003/v1/rag/collections" -H "Authorization: Bearer tP07DAahaFF\!"
 
