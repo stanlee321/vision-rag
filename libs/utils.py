@@ -21,6 +21,7 @@ from anyio import to_thread
 
 def sanitize_metadata(metadata: dict, doc_type: str) -> dict:
     sanitized = {}
+    print(f"Sanitizing metadata: {metadata}")
     for key, value in metadata.items():
         if isinstance(value, (str, int, float)) or value is None:
             sanitized[key] = value

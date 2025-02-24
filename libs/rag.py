@@ -104,7 +104,11 @@ class RagAPI:
             )
         try:
             response = query_engine.query(q)
-            metadata = transform_metadata(response.metadata, doc_type=None)
+            print(f"Response from query: {response}")
+            if response.metadata:
+                metadata = transform_metadata(response.metadata, doc_type=None)
+            else:
+                metadata = []
         except Exception as e:
             print(f"Query failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")

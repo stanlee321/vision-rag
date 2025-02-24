@@ -34,6 +34,9 @@ curl -G "http://localhost:8003/v1/rag/query" \
      --data-urlencode "collection_name=test_collection_low" \
      --data-urlencode "response_mode=tree_summarize"
 
+
+curl "http://23.20.190.185:8003/v1/rag/query?q=What+is+the+main+idea+of+the+document%3F&collection_name=governingDocuments&response_mode=compact&doc_type=governingDocuments"
+
 curl "http://localhost:8003/v1/rag/collections"
 
 curl "http://localhost:8003/v1/rag/info"
