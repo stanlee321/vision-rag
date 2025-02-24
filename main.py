@@ -77,6 +77,10 @@ async def upload_endpoint(
     loader: str = Query("pymupdf"),
     authenticated: bool = Depends(verify_token)
 ):
+    print(f"Uploading document to collection: {collection_name}")
+    print(f"Document type: {doc_type}")
+    print(f"Loader: {loader}")
+    print(f"File: {file}")
     return await rag_api.upload_document(file, collection_name, doc_type, loader)
 
 @app.get("/v1/rag/query")

@@ -37,6 +37,10 @@ class RagAPI:
         Returns:
             A message indicating that the file has been uploaded and processed.
         """
+        print(f"Uploading document to collection: {collection_name}")
+        print(f"Document type: {doc_type}")
+        print(f"Loader: {loader}")
+        print(f"File: {file}")
         if file.content_type != "application/pdf":
             raise HTTPException(status_code=400, detail="Only PDF files are accepted")
         try:
@@ -102,6 +106,7 @@ class RagAPI:
             response = query_engine.query(q)
             metadata = transform_metadata(response.metadata, doc_type=None)
         except Exception as e:
+            print(f"Query failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
         return {"question": q, "answer": response.response, "metadata": metadata}
 
