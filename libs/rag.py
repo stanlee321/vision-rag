@@ -2,7 +2,6 @@ import os
 from fastapi import UploadFile
 from tempfile import gettempdir
 
-from tempfile import NamedTemporaryFile
 from db.chroma import ChromaDBClient
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.prompts import PromptTemplate
