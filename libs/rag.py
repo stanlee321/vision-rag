@@ -3,15 +3,31 @@ from fastapi import UploadFile
 from tempfile import gettempdir
 
 from db.chroma import ChromaDBClient
+from llama_index.core.schema import Document as LlamaDocument
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.prompts import PromptTemplate
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core.vector_stores import ExactMatchFilter, MetadataFilters
+from llama_index.core.extractors import (
+    TitleExtractor,
+    QuestionsAnsweredExtractor,
+)
+
+from pprint import pprint
+from llama_index.core.text_splitter import SentenceSplitter
+from llama_index.core import VectorStoreIndex, download_loader, StorageContext
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.ingestion import IngestionPipeline
+
+from db.chroma import ChromaDBClient
+from smart_llm_loader import SmartLLMLoader
 
 from fastapi import HTTPException
 
-from libs.utils import process_pdf, transform_metadata
+from libs.utils import transform_metadata, get_llm, sanitize_metadata, get_embed_model
 from libs.data import response_mode_dict
+from anyio import to_thread
+from typing import Tuple
 
 
 class RagAPI:
@@ -23,7 +39,139 @@ class RagAPI:
         self.qa_template = qa_template
         self.openai_api_key = openai_api_key
         self.vision_model = vision_model
+        
+        llm_transformations_provider = os.getenv("LLM_TRANSFORMATIONS_PROVIDER", "openai")
+        llm_transformations_model = os.getenv("LLM_TRANSFORMATIONS_MODEL", "gpt-4o-mini")
 
+        self.llm_transformations = get_llm(provider=llm_transformations_provider, 
+                                           model_name=llm_transformations_model)
+
+        llm_embeddings_provider = os.getenv("LLM_EMBEDDINGS_PROVIDER", "openai")
+        llm_embeddings_model = os.getenv("LLM_EMBEDDINGS_MODEL", "text-embedding-3-large")
+
+        self.llm_embedding = get_embed_model(provider=llm_embeddings_provider, llm_embeddings_model = llm_embeddings_model)
+        
+        llm_query_provider = os.getenv("LLM_QUERY_PROVIDER", "openai")
+        llm_query_model = os.getenv("LLM_QUERY_MODEL", "gpt-4o-mini")
+
+        self.llm_query = get_llm(provider=llm_query_provider, model_name = llm_query_model)
+        
+    def get_text_splitter(self):
+
+        text_splitter = SentenceSplitter(
+            separator=" ", chunk_size=1024, chunk_overlap=128
+        )
+        return text_splitter
+    
+    def get_title_extractor(self):
+        title_extractor = TitleExtractor(llm=self.llm_transformations, nodes=5)
+        return title_extractor
+    
+    def get_qa_extractor(self):
+        qa_extractor = QuestionsAnsweredExtractor(llm=self.llm_transformations, questions=3)
+        return qa_extractor
+
+    def get_pipeline(self):
+        
+        pipeline = IngestionPipeline(
+                transformations=[
+                    self.get_text_splitter(),
+                    self.get_title_extractor(),
+                    self.get_qa_extractor()
+                ]
+            )
+        return pipeline
+    
+    def convert_langchain_to_llama_docs(self, lc_docs, doc_type: str):
+        return [
+            LlamaDocument(
+                text=doc.page_content, 
+                metadata=sanitize_metadata(doc.metadata, doc_type))
+            for doc in lc_docs
+        ]
+
+
+    async def process_pdf(
+        self,
+        chroma_client: ChromaDBClient,
+        file_path: str, 
+        collection_name: str, 
+        loader_type: str = "pymupdf", 
+        vision_model: str = "gemini/gemini-1.5-flash",
+        doc_type: str = "GENERIC",
+        api_key: str = None
+    ) -> Tuple[VectorStoreIndex, str]:
+        """
+        Process a PDF file and return a VectorStoreIndex.
+
+        Args:
+            chroma_client: The ChromaDB client.
+            file_path: The path to the PDF file.
+            collection_name: The name of the collection to upload the document to.
+            loader_type: The type of loader to use to load the document.
+            vision_model: The vision model to use to load the document.
+            doc_type: The type of the document.
+            api_key: The API key to use to load the document.
+
+        Returns:
+            A VectorStoreIndex.
+        """
+        # Get (or create) a collection in ChromaDB
+        collection = chroma_client.get_or_create_collection(collection_name)
+        vector_store = ChromaVectorStore(chroma_collection=collection)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+        documents_size = 0
+        # Choose loader based on loader_type query parameter
+        if loader_type.lower() == "smart":
+            loader = SmartLLMLoader(
+                file_path=file_path,
+                chunk_strategy="contextual",
+                model=vision_model,
+                api_key = api_key
+            )
+            # Run loader.load_and_split() in a separate thread to avoid nested event loops
+            docs = await to_thread.run_sync(loader.load_and_split)
+            docs = self.convert_langchain_to_llama_docs(docs, doc_type)
+            documents_size = len(docs)
+        else:
+            PyMuPDFReader = download_loader("PyMuPDFReader")
+            docs = PyMuPDFReader().load_data(file_path)
+            
+            # Add doc_type to metadata
+            for doc in docs:
+                doc.metadata["doc_type"] = doc_type
+            
+            documents_size = len(docs)
+            
+        pprint(docs[0].metadata)
+        pipeline = self.get_pipeline()
+        
+        # Run the pipeline
+        nodes = pipeline.run(
+            documents=docs,
+            in_place=True,
+            show_progress=True,
+        )
+
+        index = VectorStoreIndex(
+            nodes, 
+            storage_context=storage_context, 
+            embed_model=self.llm_embedding
+        )
+
+        # Build (or update) the index using the parsed documents
+        # index = VectorStoreIndex.from_documents(
+        #     docs, 
+        #     vector_store=vector_store,
+        #     storage_context=storage_context,
+        #     transformations=[
+        #         SentenceSplitter(chunk_size=1000, chunk_overlap=200)
+        #     ],
+        #     show_progress=True
+        # )
+        return index, documents_size
+    
     async def upload_document(self, file: UploadFile, collection_name: str, doc_type: str, loader: str):
         """
         Upload a document to the RAG API.
@@ -51,18 +199,24 @@ class RagAPI:
             # Use the original filename but ensure it's safe
             safe_filename = os.path.basename(file.filename)
             file_path = os.path.join(upload_dir, safe_filename)
-            file_path = file_path.split(".")[0] + ".pdf"
+            # Extract only the filname and the extension
+            file_name = os.path.splitext(safe_filename)[0]
+            extension = os.path.splitext(safe_filename)[1]
+            
+            file_path = os.path.join(upload_dir, file_name) + extension
+            
             # Write the file with original name
             contents = await file.read()
             with open(file_path, 'wb') as f:
                 f.write(contents)
             
             try:
-                _, documents_size = await process_pdf(
+                _, documents_size = await self.process_pdf(
                     self.chroma_client, file_path, collection_name,
                     loader_type=loader, vision_model=self.vision_model,
                     doc_type=doc_type, api_key=self.openai_api_key
                 )
+            
                 print("File processed successfully, at file_path: ", file_path)
                 print(f"Documents size: {documents_size}")
             finally:
@@ -96,12 +250,24 @@ class RagAPI:
         coll = self.chroma_client.get_or_create_collection(collection_name)
         vector_store = ChromaVectorStore(chroma_collection=coll)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        index = VectorStoreIndex([], vector_store=vector_store, storage_context=storage_context)
+        
+        # Make sure to use the same embedding model that was used for indexing
+        index = VectorStoreIndex(
+            [], 
+            vector_store=vector_store, 
+            storage_context=storage_context,
+            embed_model=self.llm_embedding
+        )
+        
+        self.qa_template = self.qa_template.partial_format(question=q)
+        
+        print(self.qa_template)
         if doc_type:
             filters = MetadataFilters(filters=[
                 ExactMatchFilter(key="doc_type", value=doc_type)
             ])
             query_engine = index.as_query_engine(
+                llm=self.llm_query,
                 text_qa_template=self.qa_template,
                 response_mode=response_mode,
                 similarity_top_k=3,
@@ -110,6 +276,7 @@ class RagAPI:
             )
         else:
             query_engine = index.as_query_engine(
+                llm=self.llm_query,
                 text_qa_template=self.qa_template,
                 response_mode=response_mode,
                 similarity_top_k=3,
@@ -118,6 +285,12 @@ class RagAPI:
         try:
             response = query_engine.query(q)
             print(f"Response from query: {response}")
+            
+            if hasattr(response, '__dict__'):
+                print("METADATA:")
+                import pprint
+                pprint.pprint(response.__dict__)
+                
             if response.metadata:
                 metadata = transform_metadata(response.metadata, doc_type=None)
             else:

@@ -1,5 +1,8 @@
 import os
 import asyncio
+import nest_asyncio
+nest_asyncio.apply()  # Enable nested asyncio event loops
+
 from fastapi import FastAPI, UploadFile, File, Query, Form, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -8,7 +11,6 @@ from llama_index.core import Settings
 from llama_index.core.prompts import PromptTemplate
 
 from libs.data import template
-from libs.utils import get_llm, get_embed_model
 from libs.rag import RagAPI
 
 from dotenv import load_dotenv
@@ -46,8 +48,8 @@ chroma_client = ChromaDBClient(
 
 rag_api = RagAPI(chroma_client, qa_template, OPENAI_API_KEY, VISION_MODEL)
 
-Settings.llm = get_llm(provider=AI_PROVIDER, model_name=LLM_MODEL)
-Settings.embed_model = get_embed_model(provider=AI_PROVIDER)
+# Settings.llm = get_llm(provider=AI_PROVIDER, model_name=LLM_MODEL)
+# Settings.embed_model = get_embed_model(provider=AI_PROVIDER)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> bool:
     """
@@ -124,4 +126,5 @@ def collections_endpoint(authenticated: bool = Depends(verify_token)):
 # Delete collection by name
 @app.delete("/v1/rag/collections/{collection_name}")
 def delete_collection_endpoint(collection_name: str, authenticated: bool = Depends(verify_token)):
+    print(f"Deleting collection: {collection_name}")
     return rag_api.delete_collection(collection_name)

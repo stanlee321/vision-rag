@@ -4,11 +4,12 @@ template = (
     "Here is some context from a general document. "
     "resume related to the query IN SPANISH::\n"
     "-----------------------------------------\n"
-    "{context_str}\n"
+    "Context: {context}\n"
+
     "-----------------------------------------\n"
     "Considering the above information, "
     "Please respond to the following inquiry:\n\n"
-    "Question: {query_str}\n\n"
+    "Question: {question}\n\n"
     "Answer succinctly and ensure your response is "
     "clear to someone without a data science background."
     
