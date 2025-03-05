@@ -29,7 +29,7 @@ services:
     volumes:
       - index_data:/chroma/chroma
     ports:
-      - "8000:8000"
+      - "8005:8000"
     env_file:
       - configs/chroma.env
     environment:
