@@ -128,3 +128,39 @@ def collections_endpoint(authenticated: bool = Depends(verify_token)):
 def delete_collection_endpoint(collection_name: str, authenticated: bool = Depends(verify_token)):
     print(f"Deleting collection: {collection_name}")
     return rag_api.delete_collection(collection_name)
+
+@app.post("/v1/translate/to-spanish")
+def translate_to_spanish_endpoint(
+    text: str = Query(..., description="Text to translate to Spanish"),
+    authenticated: bool = Depends(verify_token)
+):
+    """
+    Translate text from any language to Spanish.
+    
+    Args:
+        text: The text to translate.
+        
+    Returns:
+        The translated text in Spanish.
+    """
+    print(f"Translating text to Spanish: {text[:100]}...")
+    return rag_api.translate_to_spanish(text)
+
+@app.post("/v1/translate")
+def translate_endpoint(
+    text: str = Query(..., description="Text to translate"),
+    target_language: str = Query("Spanish", description="Target language for translation"),
+    authenticated: bool = Depends(verify_token)
+):
+    """
+    Translate text from any language to the specified target language.
+    
+    Args:
+        text: The text to translate.
+        target_language: The target language for translation (default: Spanish).
+        
+    Returns:
+        The translated text in the target language.
+    """
+    print(f"Translating text to {target_language}: {text[:100]}...")
+    return rag_api.translate_text(text, target_language)

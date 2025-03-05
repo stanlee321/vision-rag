@@ -298,6 +298,10 @@ class RagAPI:
         except Exception as e:
             print(f"Query failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+        
+        if response.response:
+            response.response = self.translate_text(response.response, target_language="Spanish").get("translated")
+        
         return {"question": q, "answer": response.response, "metadata": metadata}
 
     def get_info(self):
@@ -334,3 +338,49 @@ class RagAPI:
         except Exception as e:
             print(f"Error deleting collection: {str(e)}")
             raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+
+    def translate_to_spanish(self, text: str) -> str:
+        """
+        Translate text from any language to Spanish using OpenAI API.
+        
+        Args:
+            text: The text to translate to Spanish.
+            
+        Returns:
+            The translated text in Spanish.
+        """
+        return self.translate_text(text, target_language="Spanish")
+        
+    def translate_text(self, text: str, target_language: str = "Spanish") -> dict:
+        """
+        Translate text from any language to the specified target language using OpenAI API.
+        
+        Args:
+            text: The text to translate.
+            target_language: The target language for translation (default: Spanish).
+            
+        Returns:
+            Dictionary containing the original text and the translated text.
+        """
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=self.openai_api_key)
+            
+            completion = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": f"""
+                     You are a professional translator.
+                     Translate the following text to {target_language} while maintaining the original meaning, tone, and style.
+                     You must answer only with the translated text, without any other text or comments.
+                     If the text is already in {target_language}, just return the text, no need to translate it.
+                     """},
+                    {"role": "user", "content": f"Translate the following text to {target_language}: {text}"}
+                ]
+            )
+            
+            translated_text = completion.choices[0].message.content
+            return {"original": text, "translated": translated_text, "target_language": target_language}
+        except Exception as e:
+            print(f"Translation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
