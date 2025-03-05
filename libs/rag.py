@@ -378,7 +378,9 @@ class RagAPI:
                         You are a professional translator.
                         Translate the following text to {target_language} while maintaining the original meaning, tone, and style.
                         You must answer only with the translated text, without any other text or comments.
-                        If the text is already in {target_language}, just return the text, no need to translate it.
+                        If the text is already in {target_language}, just return the text AS IT IS: 
+                            {text} 
+                        ( THIS IS IMPORTANT ), no need to translate it, just return it AS IT IS.
                      """},
                     {"role": "user", "content": f"Translate the following text to {target_language}: {text}"}
                 ]
