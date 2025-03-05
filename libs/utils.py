@@ -48,8 +48,6 @@ def transform_metadata(raw_metadata: dict, doc_type: Union[str, None]) -> List[d
     return results
 
 
-
-
 def get_llm(provider: str, model_name: str):
     return OpenAI(model_name=model_name, api_key=os.environ["OPENAI_API_KEY"])
 

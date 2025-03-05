@@ -53,8 +53,12 @@ class RagAPI:
         
         llm_query_provider = os.getenv("LLM_QUERY_PROVIDER", "openai")
         llm_query_model = os.getenv("LLM_QUERY_MODEL", "gpt-4o-mini")
+        
 
         self.llm_query = get_llm(provider=llm_query_provider, model_name = llm_query_model)
+        
+        self.llm_translate_model = os.getenv("LLM_TRANSLATE_MODEL", "gpt-4o-mini")
+        
         
     def get_text_splitter(self):
 
@@ -364,16 +368,17 @@ class RagAPI:
         """
         try:
             from openai import OpenAI
+            
             client = OpenAI(api_key=self.openai_api_key)
             
             completion = client.chat.completions.create(
-                model="gpt-4o",
+                model=self.llm_translate_model,
                 messages=[
                     {"role": "system", "content": f"""
-                     You are a professional translator.
-                     Translate the following text to {target_language} while maintaining the original meaning, tone, and style.
-                     You must answer only with the translated text, without any other text or comments.
-                     If the text is already in {target_language}, just return the text, no need to translate it.
+                        You are a professional translator.
+                        Translate the following text to {target_language} while maintaining the original meaning, tone, and style.
+                        You must answer only with the translated text, without any other text or comments.
+                        If the text is already in {target_language}, just return the text, no need to translate it.
                      """},
                     {"role": "user", "content": f"Translate the following text to {target_language}: {text}"}
                 ]
