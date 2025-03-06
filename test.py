@@ -7,7 +7,7 @@ import json
 
 # Using openai model
 # os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY"
-model = "openai/gpt-4o"
+model = "openai/gpt-4o-mini"
 
 # # Using anthropic model
 # os.environ["ANTHROPIC_API_KEY"] = "YOUR_ANTHROPIC_API_KEY"
@@ -17,7 +17,7 @@ model = "openai/gpt-4o"
 # api_base="http://localhost:11434"
 # Initialize the document loader
 loader = SmartLLMLoader(
-    file_path="../data/2502.06472v1.pdf",
+    file_path="./data/2502.06472v1.pdf",
     chunk_strategy="contextual",
     model=model,
     # api_base=api_base,

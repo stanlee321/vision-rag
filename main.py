@@ -31,6 +31,10 @@ CHROMA_SERVER_AUTHN_PROVIDER = os.getenv("CHROMA_SERVER_AUTHN_PROVIDER")
 CHROMA_AUTH_TOKEN_TRANSPORT_HEADER = os.getenv("CHROMA_AUTH_TOKEN_TRANSPORT_HEADER")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TIMEOUT = int(os.getenv("TIMEOUT", "600"))
+USE_METADATA = int(os.getenv("USE_METADATA", 0))
+
+use_metadata_pipeline = True if USE_METADATA==1 else False
+
 
 # Print all environment variables
 print("Environment variables:")
@@ -46,7 +50,7 @@ chroma_client = ChromaDBClient(
     auth_token_transport_header=CHROMA_AUTH_TOKEN_TRANSPORT_HEADER
 )
 
-rag_api = RagAPI(chroma_client, qa_template, OPENAI_API_KEY, VISION_MODEL)
+rag_api = RagAPI(chroma_client, qa_template, OPENAI_API_KEY, VISION_MODEL, use_metadata_pipeline = use_metadata_pipeline)
 
 # Settings.llm = get_llm(provider=AI_PROVIDER, model_name=LLM_MODEL)
 # Settings.embed_model = get_embed_model(provider=AI_PROVIDER)

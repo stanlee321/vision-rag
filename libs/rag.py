@@ -34,12 +34,15 @@ class RagAPI:
     """
     A class for the RAG API.
     """
-    def __init__(self, chroma_client: ChromaDBClient, qa_template: PromptTemplate, openai_api_key: str, vision_model: str):
+    def __init__(self, chroma_client: ChromaDBClient, qa_template: PromptTemplate, openai_api_key: str, vision_model: str, use_metadata_pipeline: bool = False):
         self.chroma_client = chroma_client
         self.qa_template = qa_template
         self.openai_api_key = openai_api_key
         self.vision_model = vision_model
+        self.use_metadata_pipeline = use_metadata_pipeline
         
+        print("USE_METADATA? : ", self.use_metadata_pipeline)
+    
         llm_transformations_provider = os.getenv("LLM_TRANSFORMATIONS_PROVIDER", "openai")
         llm_transformations_model = os.getenv("LLM_TRANSFORMATIONS_MODEL", "gpt-4o-mini")
 
@@ -149,31 +152,41 @@ class RagAPI:
             documents_size = len(docs)
             
         pprint(docs[0].metadata)
-        pipeline = self.get_pipeline()
-        
-        # Run the pipeline
-        nodes = pipeline.run(
-            documents=docs,
-            in_place=True,
-            show_progress=True,
-        )
+        if self.use_metadata_pipeline:
+            pipeline = self.get_pipeline()
+            nodes = pipeline.run(
+                documents=docs,
+                in_place=True,
+                show_progress=True,
+            )
+            
+            index = VectorStoreIndex(
+                nodes,
+                storage_context=storage_context, 
+                embed_model=self.llm_embedding
+            )
 
-        index = VectorStoreIndex(
-            nodes, 
-            storage_context=storage_context, 
-            embed_model=self.llm_embedding
-        )
+            return index, documents_size
+    
+        # pipeline = self.get_pipeline()
+        
+        # # Run the pipeline
+        # nodes = pipeline.run(
+        #     documents=docs,
+        #     in_place=True,
+        #     show_progress=True,
+        # )
 
         # Build (or update) the index using the parsed documents
-        # index = VectorStoreIndex.from_documents(
-        #     docs, 
-        #     vector_store=vector_store,
-        #     storage_context=storage_context,
-        #     transformations=[
-        #         SentenceSplitter(chunk_size=1000, chunk_overlap=200)
-        #     ],
-        #     show_progress=True
-        # )
+        index = VectorStoreIndex.from_documents(
+            docs, 
+            vector_store=vector_store,
+            storage_context=storage_context,
+            transformations=[
+                SentenceSplitter(chunk_size=1000, chunk_overlap=200)
+            ],
+            show_progress=True
+        )
         return index, documents_size
     
     async def upload_document(self, file: UploadFile, collection_name: str, doc_type: str, loader: str):
