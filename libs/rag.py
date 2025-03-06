@@ -372,7 +372,7 @@ class RagAPI:
             client = OpenAI(api_key=self.openai_api_key)
             
             completion = client.chat.completions.create(
-                model=self.llm_translate_model,
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": f"""
                         You are a professional translator.
