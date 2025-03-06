@@ -167,15 +167,6 @@ class RagAPI:
             )
 
             return index, documents_size
-    
-        # pipeline = self.get_pipeline()
-        
-        # # Run the pipeline
-        # nodes = pipeline.run(
-        #     documents=docs,
-        #     in_place=True,
-        #     show_progress=True,
-        # )
 
         # Build (or update) the index using the parsed documents
         index = VectorStoreIndex.from_documents(
