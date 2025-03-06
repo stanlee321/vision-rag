@@ -182,6 +182,7 @@ class RagAPI:
             docs, 
             vector_store=vector_store,
             storage_context=storage_context,
+            embed_model=self.llm_embedding,
             transformations=[
                 SentenceSplitter(chunk_size=1000, chunk_overlap=200)
             ],
