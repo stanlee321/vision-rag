@@ -180,7 +180,6 @@ class RagAPI:
         # Build (or update) the index using the parsed documents
         index = VectorStoreIndex.from_documents(
             docs, 
-            vector_store=vector_store,
             storage_context=storage_context,
             embed_model=self.llm_embedding,
             transformations=[
